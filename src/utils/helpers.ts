@@ -4,20 +4,26 @@ export function generateId(): string {
   return crypto.randomUUID();
 }
 
+const currencyFmt = new Intl.NumberFormat('it-IT', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+  useGrouping: true,
+});
+
+const numberFmt = new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+  useGrouping: true,
+});
+
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('it-IT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return currencyFmt.format(amount);
 }
 
 export function formatNumber(amount: number): string {
-  return new Intl.NumberFormat('it-IT', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return numberFmt.format(amount);
 }
 
 export function formatPercent(value: number): string {
@@ -25,10 +31,7 @@ export function formatPercent(value: number): string {
 }
 
 export function formatAxisValue(v: number): string {
-  if (Math.abs(v) >= 1000) {
-    return `${formatNumber(Math.round(v / 1000))}k`;
-  }
-  return formatNumber(v);
+  return formatNumber(Math.round(v));
 }
 
 export const FREQUENCY_LABELS: Record<Frequency, string> = {
