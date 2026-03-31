@@ -35,9 +35,13 @@ export function annualToMonthlyRate(annualPercent: number): number {
   return Math.pow(1 + annualPercent / 100, 1 / 12) - 1;
 }
 
+export function getTotalAccountBalance(scenario: BudgetScenario): number {
+  return scenario.accounts.reduce((sum, acc) => sum + acc.balance, 0);
+}
+
 export function simulateBudget(scenario: BudgetScenario): SimulationResult {
   const monthlyData: MonthlyRow[] = [];
-  let currentLiquidity = scenario.startingLiquidity;
+  let currentLiquidity = getTotalAccountBalance(scenario);
 
   const investmentValues: Record<string, number> = {};
   for (const inv of scenario.investments) {
@@ -57,6 +61,13 @@ export function simulateBudget(scenario: BudgetScenario): SimulationResult {
   for (let month = 1; month <= 12; month++) {
     const startingLiquidity = currentLiquidity;
 
+    const override = scenario.monthlyOverrides.find((o) => o.month === month);
+    const extraIncome = override?.extraIncome ?? 0;
+    const extraCosts = override?.extraCosts ?? 0;
+    const notes = override?.notes ?? '';
+
+    const totalIncome = monthlyIncome + extraIncome;
+
     const totalExceptionalCosts = scenario.exceptionalCosts
       .filter((cost) => cost.month === month)
       .reduce((sum, cost) => sum + cost.amount, 0);
@@ -71,7 +82,7 @@ export function simulateBudget(scenario: BudgetScenario): SimulationResult {
     }
 
     const cashFlow =
-      monthlyIncome - monthlyFixedCosts - totalExceptionalCosts - totalInvestmentContributions;
+      totalIncome - monthlyFixedCosts - totalExceptionalCosts - extraCosts - totalInvestmentContributions;
     currentLiquidity = startingLiquidity + cashFlow;
 
     const totalInvestments = Object.values(investmentValues).reduce((a, b) => a + b, 0);
@@ -79,10 +90,12 @@ export function simulateBudget(scenario: BudgetScenario): SimulationResult {
     monthlyData.push({
       month,
       monthName: MONTH_NAMES[month - 1],
-      totalIncome: monthlyIncome,
+      totalIncome,
       totalFixedCosts: monthlyFixedCosts,
       totalExceptionalCosts,
       totalInvestmentContributions,
+      extraIncome,
+      extraCosts,
       cashFlow,
       startingLiquidity,
       endingLiquidity: currentLiquidity,
@@ -90,6 +103,7 @@ export function simulateBudget(scenario: BudgetScenario): SimulationResult {
       totalInvestments,
       totalWealth: currentLiquidity + totalInvestments,
       isNegative: currentLiquidity < 0,
+      notes,
     });
   }
 

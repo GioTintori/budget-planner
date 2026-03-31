@@ -1,4 +1,4 @@
-import type { Frequency, MonthlyRow, BudgetScenario } from '../types';
+import type { Frequency, MonthlyRow, BudgetScenario, AccountType } from '../types';
 
 export function generateId(): string {
   return crypto.randomUUID();
@@ -13,21 +13,22 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function formatCurrencyCompact(amount: number): string {
-  if (Math.abs(amount) >= 1000) {
-    return new Intl.NumberFormat('it-IT', {
-      style: 'currency',
-      currency: 'EUR',
-      notation: 'compact',
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    }).format(amount);
-  }
-  return formatCurrency(amount);
+export function formatNumber(amount: number): string {
+  return new Intl.NumberFormat('it-IT', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
+}
+
+export function formatAxisValue(v: number): string {
+  if (Math.abs(v) >= 1000) {
+    return `${formatNumber(Math.round(v / 1000))}k`;
+  }
+  return formatNumber(v);
 }
 
 export const FREQUENCY_LABELS: Record<Frequency, string> = {
@@ -35,6 +36,20 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   quarterly: 'Trimestrale',
   annual: 'Annuale',
   'one-off': 'Una tantum',
+};
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  checking: 'Conto Corrente',
+  savings: 'Conto Risparmio',
+  cash: 'Contanti',
+  other: 'Altro',
+};
+
+export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
+  checking: 'text-blue-600 bg-blue-50',
+  savings: 'text-emerald-600 bg-emerald-50',
+  cash: 'text-amber-600 bg-amber-50',
+  other: 'text-slate-600 bg-slate-100',
 };
 
 export const MONTH_OPTIONS = [
@@ -70,12 +85,15 @@ export function exportToCSV(monthlyData: MonthlyRow[], filename: string): void {
     'Entrate',
     'Costi Fissi',
     'Costi Eccezionali',
+    'Extra Entrate',
+    'Extra Costi',
     'Contributi Investimenti',
     'Cash Flow',
     'Liquidità Iniziale',
     'Liquidità Finale',
     'Valore Investimenti',
     'Patrimonio Totale',
+    'Note',
   ];
 
   const rows = monthlyData.map((row) => [
@@ -83,12 +101,15 @@ export function exportToCSV(monthlyData: MonthlyRow[], filename: string): void {
     row.totalIncome.toFixed(2),
     row.totalFixedCosts.toFixed(2),
     row.totalExceptionalCosts.toFixed(2),
+    row.extraIncome.toFixed(2),
+    row.extraCosts.toFixed(2),
     row.totalInvestmentContributions.toFixed(2),
     row.cashFlow.toFixed(2),
     row.startingLiquidity.toFixed(2),
     row.endingLiquidity.toFixed(2),
     row.totalInvestments.toFixed(2),
     row.totalWealth.toFixed(2),
+    row.notes,
   ]);
 
   const csvContent = [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
@@ -111,7 +132,7 @@ export interface BudgetDataFile {
 
 export function exportToJSON(current: BudgetScenario, saved: BudgetScenario[]): void {
   const data: BudgetDataFile = {
-    version: 1,
+    version: 2,
     exportDate: new Date().toISOString().split('T')[0],
     currentScenario: current,
     savedScenarios: saved,
@@ -135,6 +156,16 @@ export function importFromJSON(file: File): Promise<BudgetDataFile> {
         if (!data.currentScenario || !Array.isArray(data.savedScenarios)) {
           reject(new Error('Formato file non valido'));
           return;
+        }
+        if (!data.currentScenario.accounts) {
+          data.currentScenario.accounts = [];
+          data.currentScenario.monthlyOverrides = [];
+        }
+        for (const sc of data.savedScenarios) {
+          if (!sc.accounts) {
+            sc.accounts = [];
+            sc.monthlyOverrides = [];
+          }
         }
         resolve(data);
       } catch {

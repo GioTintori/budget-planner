@@ -5,7 +5,11 @@ export function createSampleScenario(): BudgetScenario {
   return {
     id: generateId(),
     name: 'Scenario Base',
-    startingLiquidity: 10000,
+    accounts: [
+      { id: generateId(), name: 'Conto Corrente', balance: 8000, type: 'checking' },
+      { id: generateId(), name: 'Conto Risparmio', balance: 5000, type: 'savings' },
+      { id: generateId(), name: 'Contanti', balance: 200, type: 'cash' },
+    ],
     incomes: [
       { id: generateId(), name: 'Stipendio', amount: 2500, frequency: 'monthly' },
     ],
@@ -42,6 +46,7 @@ export function createSampleScenario(): BudgetScenario {
         riskLevel: 'high',
       },
     ],
+    monthlyOverrides: [],
   };
 }
 
@@ -49,10 +54,11 @@ export function createEmptyScenario(): BudgetScenario {
   return {
     id: generateId(),
     name: 'Nuovo Scenario',
-    startingLiquidity: 0,
+    accounts: [],
     incomes: [],
     fixedCosts: [],
     exceptionalCosts: [],
     investments: [],
+    monthlyOverrides: [],
   };
 }

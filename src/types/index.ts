@@ -2,6 +2,15 @@ export type Frequency = 'monthly' | 'quarterly' | 'annual' | 'one-off';
 
 export type RiskLevel = 'low' | 'medium' | 'high';
 
+export type AccountType = 'checking' | 'savings' | 'cash' | 'other';
+
+export interface Account {
+  id: string;
+  name: string;
+  balance: number;
+  type: AccountType;
+}
+
 export interface Income {
   id: string;
   name: string;
@@ -33,6 +42,13 @@ export interface Investment {
   riskLevel: RiskLevel;
 }
 
+export interface MonthlyOverride {
+  month: number;
+  extraIncome: number;
+  extraCosts: number;
+  notes: string;
+}
+
 export interface MonthlyRow {
   month: number;
   monthName: string;
@@ -40,6 +56,8 @@ export interface MonthlyRow {
   totalFixedCosts: number;
   totalExceptionalCosts: number;
   totalInvestmentContributions: number;
+  extraIncome: number;
+  extraCosts: number;
   cashFlow: number;
   startingLiquidity: number;
   endingLiquidity: number;
@@ -47,6 +65,7 @@ export interface MonthlyRow {
   totalInvestments: number;
   totalWealth: number;
   isNegative: boolean;
+  notes: string;
 }
 
 export interface SimulationResult {
@@ -64,9 +83,10 @@ export interface SimulationResult {
 export interface BudgetScenario {
   id: string;
   name: string;
-  startingLiquidity: number;
+  accounts: Account[];
   incomes: Income[];
   fixedCosts: FixedCost[];
   exceptionalCosts: ExceptionalCost[];
   investments: Investment[];
+  monthlyOverrides: MonthlyOverride[];
 }
