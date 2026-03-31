@@ -69,6 +69,12 @@ export default function App() {
     );
   };
 
+  const handleImport = (current: BudgetScenario, saved: BudgetScenario[]) => {
+    setScenario(current);
+    setSavedScenarios(saved);
+    setComparisonIds([]);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -176,6 +182,7 @@ export default function App() {
               onLoad={handleLoad}
               onDelete={handleDelete}
               onReset={handleReset}
+              onImport={handleImport}
               comparisonIds={comparisonIds}
               onToggleComparison={handleToggleComparison}
             />
