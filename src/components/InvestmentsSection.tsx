@@ -1,6 +1,7 @@
-import { Plus, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Investment, Frequency, RiskLevel } from '../types';
-import { generateId, FREQUENCY_LABELS, RISK_LABELS, RISK_COLORS } from '../utils/helpers';
+import { generateId, FREQUENCY_LABELS, RISK_LABELS, RISK_COLORS, formatCurrency } from '../utils/helpers';
+import { getInvestmentGain, getInvestmentReturn, getTotalAnnualContributions } from '../utils/calculations';
 
 interface Props {
   investments: Investment[];
@@ -17,10 +18,10 @@ export default function InvestmentsSection({ investments, onChange }: Props) {
       {
         id: generateId(),
         name: '',
-        initialCapital: 0,
+        amountInvested: 0,
+        currentValue: 0,
         periodicContribution: 0,
         contributionFrequency: 'monthly',
-        expectedReturn: 7,
         riskLevel: 'medium',
       },
     ]);
@@ -59,112 +60,142 @@ export default function InvestmentsSection({ investments, onChange }: Props) {
       )}
 
       <div className="space-y-3">
-        {investments.map((inv) => (
-          <div
-            key={inv.id}
-            className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex-1 mr-2">
-                <input
-                  type="text"
-                  value={inv.name}
-                  onChange={(e) => update(inv.id, 'name', e.target.value)}
-                  placeholder="Nome portafoglio (es. ETF Globale)"
-                  className={inputClass + ' font-medium'}
-                />
-              </div>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${RISK_COLORS[inv.riskLevel]} mr-2`}
-              >
-                {RISK_LABELS[inv.riskLevel]}
-              </span>
-              <button
-                onClick={() => remove(inv.id)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+        {investments.map((inv) => {
+          const gain = getInvestmentGain(inv);
+          const returnPct = getInvestmentReturn(inv);
+          const totalContrib = getTotalAnnualContributions(inv);
+          const totalInvested = inv.amountInvested + totalContrib;
+          const isPositive = gain >= 0;
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">
-                  Capitale iniziale
-                </label>
-                <input
-                  type="number"
-                  value={inv.initialCapital || ''}
-                  onChange={(e) => update(inv.id, 'initialCapital', Number(e.target.value))}
-                  placeholder="0"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">
-                  Contributo periodico
-                </label>
-                <input
-                  type="number"
-                  value={inv.periodicContribution || ''}
-                  onChange={(e) => update(inv.id, 'periodicContribution', Number(e.target.value))}
-                  placeholder="0"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Frequenza</label>
-                <select
-                  value={inv.contributionFrequency}
-                  onChange={(e) =>
-                    update(inv.id, 'contributionFrequency', e.target.value as Frequency)
-                  }
-                  className={inputClass}
+          return (
+            <div
+              key={inv.id}
+              className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1 mr-2">
+                  <input
+                    type="text"
+                    value={inv.name}
+                    onChange={(e) => update(inv.id, 'name', e.target.value)}
+                    placeholder="Nome (es. ETF Globale)"
+                    className={inputClass + ' font-medium'}
+                  />
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${RISK_COLORS[inv.riskLevel]} mr-2`}
                 >
-                  {Object.entries(FREQUENCY_LABELS)
-                    .filter(([k]) => k !== 'one-off')
-                    .map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">
-                  Rendimento atteso (% annuo)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={inv.expectedReturn || ''}
-                  onChange={(e) => update(inv.id, 'expectedReturn', Number(e.target.value))}
-                  placeholder="7"
-                  className={inputClass}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <label className="block text-xs font-medium text-slate-500 mb-1 self-center mr-1">
-                Rischio:
-              </label>
-              {(['low', 'medium', 'high'] as RiskLevel[]).map((level) => (
+                  {RISK_LABELS[inv.riskLevel]}
+                </span>
                 <button
-                  key={level}
-                  onClick={() => update(inv.id, 'riskLevel', level)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                    inv.riskLevel === level
-                      ? RISK_COLORS[level]
-                      : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                  }`}
+                  onClick={() => remove(inv.id)}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
                 >
-                  {RISK_LABELS[level]}
+                  <Trash2 className="h-4 w-4" />
                 </button>
-              ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                    Capitale investito
+                  </label>
+                  <input
+                    type="number"
+                    value={inv.amountInvested || ''}
+                    onChange={(e) => update(inv.id, 'amountInvested', Number(e.target.value))}
+                    placeholder="0"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                    Valore fine anno
+                  </label>
+                  <input
+                    type="number"
+                    value={inv.currentValue || ''}
+                    onChange={(e) => update(inv.id, 'currentValue', Number(e.target.value))}
+                    placeholder="0"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                    Contributo periodico
+                  </label>
+                  <input
+                    type="number"
+                    value={inv.periodicContribution || ''}
+                    onChange={(e) => update(inv.id, 'periodicContribution', Number(e.target.value))}
+                    placeholder="0"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Frequenza</label>
+                  <select
+                    value={inv.contributionFrequency}
+                    onChange={(e) =>
+                      update(inv.id, 'contributionFrequency', e.target.value as Frequency)
+                    }
+                    className={inputClass}
+                  >
+                    {Object.entries(FREQUENCY_LABELS)
+                      .filter(([k]) => k !== 'one-off')
+                      .map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Gain/Loss summary */}
+              {(inv.amountInvested > 0 || inv.currentValue > 0) && (
+                <div className={`rounded-lg px-3 py-2 ${isPositive ? 'bg-emerald-50' : 'bg-red-50'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {isPositive ? (
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                    ) : (
+                      <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                    )}
+                    <span className={`text-xs font-semibold ${isPositive ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {isPositive ? '+' : ''}{formatCurrency(gain)} ({isPositive ? '+' : ''}{returnPct.toFixed(1)}%)
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-slate-500">
+                    <span>Investito: {formatCurrency(totalInvested)}</span>
+                    <span>Valore: {formatCurrency(inv.currentValue)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <label className="block text-xs font-medium text-slate-500 self-center mr-1">
+                  Rischio:
+                </label>
+                {(['low', 'medium', 'high'] as RiskLevel[]).map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => update(inv.id, 'riskLevel', level)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      inv.riskLevel === level
+                        ? RISK_COLORS[level]
+                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                    }`}
+                  >
+                    {RISK_LABELS[level]}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

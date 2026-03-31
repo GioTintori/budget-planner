@@ -31,8 +31,23 @@ export function getContributionForMonth(investment: Investment, month: number): 
   }
 }
 
-export function annualToMonthlyRate(annualPercent: number): number {
-  return Math.pow(1 + annualPercent / 100, 1 / 12) - 1;
+export function getTotalAnnualContributions(investment: Investment): number {
+  let total = 0;
+  for (let m = 1; m <= 12; m++) {
+    total += getContributionForMonth(investment, m);
+  }
+  return total;
+}
+
+export function getInvestmentGain(investment: Investment): number {
+  const totalInvested = investment.amountInvested + getTotalAnnualContributions(investment);
+  return investment.currentValue - totalInvested;
+}
+
+export function getInvestmentReturn(investment: Investment): number {
+  const totalInvested = investment.amountInvested + getTotalAnnualContributions(investment);
+  if (totalInvested === 0) return 0;
+  return ((investment.currentValue / totalInvested) - 1) * 100;
 }
 
 export function getTotalAccountBalance(scenario: BudgetScenario): number {
@@ -44,8 +59,12 @@ export function simulateBudget(scenario: BudgetScenario): SimulationResult {
   let currentLiquidity = getTotalAccountBalance(scenario);
 
   const investmentValues: Record<string, number> = {};
+  const investmentGainPerMonth: Record<string, number> = {};
+
   for (const inv of scenario.investments) {
-    investmentValues[inv.id] = inv.initialCapital;
+    investmentValues[inv.id] = inv.amountInvested;
+    const gain = getInvestmentGain(inv);
+    investmentGainPerMonth[inv.id] = gain / 12;
   }
 
   const monthlyIncome = scenario.incomes.reduce(
@@ -76,9 +95,7 @@ export function simulateBudget(scenario: BudgetScenario): SimulationResult {
     for (const inv of scenario.investments) {
       const contribution = getContributionForMonth(inv, month);
       totalInvestmentContributions += contribution;
-
-      const monthlyRate = annualToMonthlyRate(inv.expectedReturn);
-      investmentValues[inv.id] = investmentValues[inv.id] * (1 + monthlyRate) + contribution;
+      investmentValues[inv.id] += contribution + investmentGainPerMonth[inv.id];
     }
 
     const cashFlow =

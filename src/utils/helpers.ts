@@ -152,15 +152,25 @@ export function importFromJSON(file: File): Promise<BudgetDataFile> {
           reject(new Error('Formato file non valido'));
           return;
         }
-        if (!data.currentScenario.accounts) {
-          data.currentScenario.accounts = [];
-          data.currentScenario.monthlyOverrides = [];
-        }
-        for (const sc of data.savedScenarios) {
-          if (!sc.accounts) {
-            sc.accounts = [];
-            sc.monthlyOverrides = [];
+        const migrateScenario = (sc: any) => {
+          if (!sc.accounts) { sc.accounts = []; }
+          if (!sc.monthlyOverrides) { sc.monthlyOverrides = []; }
+          if (sc.investments) {
+            sc.investments = sc.investments.map((inv: any) => {
+              if ('initialCapital' in inv && !('amountInvested' in inv)) {
+                return {
+                  ...inv,
+                  amountInvested: inv.initialCapital,
+                  currentValue: inv.initialCapital,
+                };
+              }
+              return inv;
+            });
           }
+        };
+        migrateScenario(data.currentScenario);
+        for (const sc of data.savedScenarios) {
+          migrateScenario(sc);
         }
         resolve(data);
       } catch {

@@ -35,10 +35,10 @@ export interface ExceptionalCost {
 export interface Investment {
   id: string;
   name: string;
-  initialCapital: number;
+  amountInvested: number;
+  currentValue: number;
   periodicContribution: number;
   contributionFrequency: Frequency;
-  expectedReturn: number;
   riskLevel: RiskLevel;
 }
 
